@@ -1,116 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cloud Cost Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6 
-             bg-cover bg-center bg-no-repeat 
-             bg-[url('https://github.com/parvaworks/convverse-cloud-cost/blob/main/logo.jpg')]">
-  
-  <div class="bg-white/90 backdrop-blur-md shadow-lg rounded-2xl p-6 w-full max-w-2xl">
-    <h1 class="text-2xl font-bold mb-4 text-gray-800">Cloud Cost Calculator</h1>
+<body class="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat bg-[url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80')]">
+  <div class="bg-white/90 backdrop-blur-md shadow-lg rounded-2xl p-6 w-full max-w-3xl">
+    <h1 class="text-2xl font-bold mb-4 text-gray-900">Cloud Cost Calculator</h1>
 
     <!-- Inputs -->
-    <div class="space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label class="block text-gray-600 text-sm">Recall Fixed Cost Per Month</label>
-        <input id="recallFixed" type="number" value="0" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">Recall Fixed Cost Per Month (org-wide)</label>
+        <input id="recallFixed" type="number" value="0" min="0" step="0.01" class="w-full border rounded-lg p-2">
+        <p class="text-xs text-gray-500 mt-1">Amortized across all license holders</p>
       </div>
       <div>
-        <label class="block text-gray-600 text-sm">Number of License Holders</label>
-        <input id="licenses" type="number" value="5" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">Number of License Holders</label>
+        <input id="licenses" type="number" value="5" min="1" step="1" class="w-full border rounded-lg p-2">
       </div>
       <div>
-        <label class="block text-gray-600 text-sm">Monthly Usage per License (hours)</label>
-        <input id="usage" type="number" value="20" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">Monthly Usage per License (hours)</label>
+        <input id="usage" type="number" value="20" min="0" step="0.1" class="w-full border rounded-lg p-2">
       </div>
       <div>
-        <label class="block text-gray-600 text-sm">Recall Variable Cost Per Hour</label>
-        <input id="recallVariable" type="number" value="1" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">Recall Variable Cost Per Hour</label>
+        <input id="recallVariable" type="number" value="1" min="0" step="0.01" class="w-full border rounded-lg p-2">
       </div>
     </div>
 
     <!-- Advanced Settings Toggle -->
-    <button onclick="toggleAdvanced()" class="mt-4 text-blue-600 text-sm underline">Advanced Settings</button>
+    <div class="mt-4 flex items-center gap-4">
+      <button onclick="toggleAdvanced()" class="text-blue-700 text-sm underline">Advanced Settings</button>
+      <span id="error" class="text-sm text-red-600 hidden">Licenses must be at least 1.</span>
+    </div>
 
     <!-- Advanced Settings -->
-    <div id="advanced" class="hidden mt-4 border-t pt-4 space-y-3">
+    <div id="advanced" class="hidden mt-4 border-t pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
-        <label class="block text-gray-600 text-sm">AWS Cost (per 3 days)</label>
-        <input id="aws3Days" type="number" value="3.71" step="0.01" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">AWS Daily Cost (USD)</label>
+        <input id="awsDaily" type="number" value="1.24" min="0" step="0.01" class="w-full border rounded-lg p-2">
+        <p class="text-xs text-gray-500 mt-1">Monthly = daily × 30 × ceil(licenses/10)</p>
       </div>
       <div>
-        <label class="block text-gray-600 text-sm">AWS Daily Cost</label>
-        <input id="awsDaily" type="number" value="1.24" step="0.01" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">API Cost per Hour (OpenAI/Groq)</label>
+        <input id="apiCost" type="number" value="0.2" min="0" step="0.01" class="w-full border rounded-lg p-2">
       </div>
       <div>
-        <label class="block text-gray-600 text-sm">API Cost per Hour (OpenAI/Groq)</label>
-        <input id="apiCost" type="number" value="0.2" step="0.01" class="w-full border rounded p-2">
+        <label class="block text-gray-700 text-sm mb-1">Supabase Cost per User (monthly)</label>
+        <input id="supabase" type="number" value="2" min="0" step="0.01" class="w-full border rounded-lg p-2">
       </div>
-      <div>
-        <label class="block text-gray-600 text-sm">Supabase Cost per User</label>
-        <input id="supabase" type="number" value="2" step="0.01" class="w-full border rounded p-2">
+      <div class="md:col-span-3">
+        <button id="resetBtn" class="mt-1 text-xs text-gray-600 underline" type="button">Reset constants to defaults</button>
       </div>
     </div>
 
-    <!-- Results -->
-    <div class="mt-6 bg-gray-50 rounded-lg p-4">
-      <h2 class="text-lg font-semibold mb-2">Results</h2>
-      <p id="perUser" class="text-gray-700 text-md">Per User Cost: $0.00</p>
-      <p id="total" class="text-gray-700 text-md">Total Cost: $0.00</p>
+    <!-- Results Cards -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-gray-50 rounded-xl p-4">
+        <h2 class="text-lg font-semibold text-gray-900">Per User</h2>
+        <p id="perUser" class="text-2xl font-bold mt-1">$0.00</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4">
+        <h2 class="text-lg font-semibold text-gray-900">Total (All Users)</h2>
+        <p id="total" class="text-2xl font-bold mt-1">$0.00</p>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="mt-6">
+      <h3 class="text-md font-semibold text-gray-900 mb-2">Breakdown</h3>
+      <div class="overflow-x-auto rounded-xl border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="text-left p-3">Component</th>
+              <th class="text-right p-3">Per User (USD)</th>
+              <th class="text-right p-3">Total (USD)</th>
+            </tr>
+          </thead>
+          <tbody id="breakdown" class="divide-y"></tbody>
+          <tfoot>
+            <tr class="bg-gray-100 font-semibold">
+              <td class="p-3">Grand Total</td>
+              <td id="sumPerUser" class="text-right p-3">$0.00</td>
+              <td id="sumTotal" class="text-right p-3">$0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   </div>
 
   <script>
+    const $ = (id) => document.getElementById(id);
+    const currency = (n) => `$${Number(n).toFixed(2)}`;
+
     function toggleAdvanced() {
-      document.getElementById("advanced").classList.toggle("hidden");
+      $('advanced').classList.toggle('hidden');
     }
 
-function calculate() {
-  const recallFixed = parseFloat(document.getElementById("recallFixed").value) || 0;
-  const licenses = parseInt(document.getElementById("licenses").value) || 1;
-  const usage = parseFloat(document.getElementById("usage").value) || 0;
-  const recallVariable = parseFloat(document.getElementById("recallVariable").value) || 0;
-
-  const awsDaily = parseFloat(document.getElementById("awsDaily").value) || 0;
-  const apiCost = parseFloat(document.getElementById("apiCost").value) || 0;
-  const supabase = parseFloat(document.getElementById("supabase").value) || 0;
-
-  // Fixed costs amortized
-  const awsFixed = awsDaily * 30 * Math.ceil(licenses / 10);
-  const awsPerUser = awsFixed / licenses;
-  const recallFixedPerUser = recallFixed / licenses;
-
-  // Variable/API costs
-  const variableCost = recallVariable * usage;
-  const openAICost = usage * apiCost;
-
-  // Per-user cost
-  const perUser = recallFixedPerUser + variableCost + openAICost + awsPerUser + supabase;
-
-  // Total org cost
-  const total = perUser * licenses;
-
-
-}
-
-
-  document.getElementById("perUser").innerText = "Per User Cost: $" + perUser.toFixed(2);
-  document.getElementById("total").innerText = "Total Cost: $" + total.toFixed(2);
-}
-
-
-      // Update UI
-      document.getElementById("perUser").innerText = "Per User Cost: $" + perUser.toFixed(2);
-      document.getElementById("total").innerText = "Total Cost: $" + total.toFixed(2);
+    function getNumber(id, fallback = 0) {
+      const raw = $(id).value;
+      const n = raw === '' ? NaN : Number(raw);
+      return Number.isFinite(n) ? n : fallback;
     }
 
-    // Recalculate on input
-    document.querySelectorAll("input").forEach(el => el.addEventListener("input", calculate));
+    function calculate() {
+      let licenses = Math.max(1, Math.floor(getNumber('licenses', 1)));
+      const usage = Math.max(0, getNumber('usage', 0));
+      const recallFixed = Math.max(0, getNumber('recallFixed', 0));
+      const recallVariable = Math.max(0, getNumber('recallVariable', 0));
 
-    // Initial calculation
+      const awsDaily = Math.max(0, getNumber('awsDaily', 1.24));
+      const apiCost = Math.max(0, getNumber('apiCost', 0.2));
+      const supabase = Math.max(0, getNumber('supabase', 2));
+
+      // Validate licenses
+      const showErr = licenses < 1;
+      $('error').classList.toggle('hidden', !showErr);
+      if (licenses < 1) licenses = 1;
+
+      // AWS fixed monthly total and per-user share
+      const awsFixedTotal = awsDaily * 30 * Math.ceil(licenses / 10);
+      const awsPerUser = awsFixedTotal / licenses;
+
+      // Recall fixed amortized per user
+      const recallFixedPerUser = recallFixed / licenses;
+
+      // Variable components per user
+      const recallVariablePerUser = recallVariable * usage;
+      const apiPerUser = apiCost * usage;
+
+      // Supabase per user
+      const supabasePerUser = supabase;
+
+      // Per-user & total
+      const perUser = recallFixedPerUser + recallVariablePerUser + apiPerUser + awsPerUser + supabasePerUser;
+      const total = perUser * licenses;
+
+      // Update headline numbers
+      $('perUser').textContent = currency(perUser);
+      $('total').textContent = currency(total);
+
+      // Build breakdown rows
+      const rows = [
+        { label: 'Recall Fixed (org-wide)', perUser: recallFixedPerUser, total: recallFixedPerUser * licenses },
+        { label: 'Recall Variable', perUser: recallVariablePerUser, total: recallVariablePerUser * licenses },
+        { label: 'API (OpenAI/Groq)', perUser: apiPerUser, total: apiPerUser * licenses },
+        { label: 'AWS Fixed', perUser: awsPerUser, total: awsFixedTotal },
+        { label: 'Supabase', perUser: supabasePerUser, total: supabasePerUser * licenses },
+      ];
+
+      $('breakdown').innerHTML = rows.map(r => `
+        <tr>
+          <td class="p-3 text-gray-800">${r.label}</td>
+          <td class="p-3 text-right text-gray-900">${currency(r.perUser)}</td>
+          <td class="p-3 text-right text-gray-900">${currency(r.total)}</td>
+        </tr>
+      `).join('');
+
+      $('sumPerUser').textContent = currency(perUser);
+      $('sumTotal').textContent = currency(total);
+    }
+
+    // Reset constants to defaults
+    $('resetBtn').addEventListener('click', () => {
+      $('awsDaily').value = 1.24;
+      $('apiCost').value = 0.2;
+      $('supabase').value = 2;
+      calculate();
+    });
+
+    // Recalculate on any input change
+    document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+
+    // Initial calc
     calculate();
   </script>
 </body>
