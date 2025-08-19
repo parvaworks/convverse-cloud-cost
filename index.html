@@ -69,26 +69,33 @@
     }
 
     function calculate() {
-      const recallFixed = parseFloat(document.getElementById("recallFixed").value) || 0;
-      const licenses = parseInt(document.getElementById("licenses").value) || 1;
-      const usage = parseFloat(document.getElementById("usage").value) || 0;
-      const recallVariable = parseFloat(document.getElementById("recallVariable").value) || 0;
+  const recallFixed = parseFloat(document.getElementById("recallFixed").value) || 0;
+  const licenses = parseInt(document.getElementById("licenses").value) || 1;
+  const usage = parseFloat(document.getElementById("usage").value) || 0;
+  const recallVariable = parseFloat(document.getElementById("recallVariable").value) || 0;
 
-      const awsDaily = parseFloat(document.getElementById("awsDaily").value) || 0;
-      const apiCost = parseFloat(document.getElementById("apiCost").value) || 0;
-      const supabase = parseFloat(document.getElementById("supabase").value) || 0;
+  const awsDaily = parseFloat(document.getElementById("awsDaily").value) || 0;
+  const apiCost = parseFloat(document.getElementById("apiCost").value) || 0;
+  const supabase = parseFloat(document.getElementById("supabase").value) || 0;
 
-      // AWS fixed monthly cost
-      const awsFixed = awsDaily * 30 * Math.ceil(licenses / 10);
+  // total monthly AWS fixed, then amortize per user
+  const awsFixed = awsDaily * 30 * Math.ceil(licenses / 10);
+  const awsPerUser = awsFixed / Math.max(licenses, 1);
 
-      // OpenAI/Groq cost per license
-      const openAICost = usage * apiCost;
+  // org-wide recall fixed amortized per user
+  const recallFixedPerUser = recallFixed / Math.max(licenses, 1);
 
-      // Per user cost
-      const perUser = recallFixed + (recallVariable * usage) + openAICost + (awsFixed / licenses) + supabase;
+  // API cost per user (usage * rate)
+  const openAICost = usage * apiCost;
 
-      // Total cost
-      const total = perUser * licenses;
+  // per-user & total
+  const perUser = recallFixedPerUser + (recallVariable * usage) + openAICost + awsPerUser + supabase;
+  const total = perUser * licenses;
+
+  document.getElementById("perUser").innerText = "Per User Cost: $" + perUser.toFixed(2);
+  document.getElementById("total").innerText = "Total Cost: $" + total.toFixed(2);
+}
+
 
       // Update UI
       document.getElementById("perUser").innerText = "Per User Cost: $" + perUser.toFixed(2);
