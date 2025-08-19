@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud Cost Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white shadow-lg rounded-2xl p-6 w-full max-w-2xl">
+    <h1 class="text-2xl font-bold mb-4 text-gray-800">Cloud Cost Calculator</h1>
+
+    <!-- Inputs -->
+    <div class="space-y-3">
+      <div>
+        <label class="block text-gray-600 text-sm">Recall Fixed Cost Per Month</label>
+        <input id="recallFixed" type="number" value="0" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">Number of License Holders</label>
+        <input id="licenses" type="number" value="5" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">Monthly Usage per License (hours)</label>
+        <input id="usage" type="number" value="20" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">Recall Variable Cost Per Hour</label>
+        <input id="recallVariable" type="number" value="1" class="w-full border rounded p-2">
+      </div>
+    </div>
+
+    <!-- Advanced Settings Toggle -->
+    <button onclick="toggleAdvanced()" class="mt-4 text-blue-600 text-sm underline">Advanced Settings</button>
+
+    <!-- Advanced Settings -->
+    <div id="advanced" class="hidden mt-4 border-t pt-4 space-y-3">
+      <div>
+        <label class="block text-gray-600 text-sm">AWS Cost (per 3 days)</label>
+        <input id="aws3Days" type="number" value="3.71" step="0.01" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">AWS Daily Cost</label>
+        <input id="awsDaily" type="number" value="1.24" step="0.01" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">API Cost per Hour (OpenAI/Groq)</label>
+        <input id="apiCost" type="number" value="0.2" step="0.01" class="w-full border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-gray-600 text-sm">Supabase Cost per User</label>
+        <input id="supabase" type="number" value="2" step="0.01" class="w-full border rounded p-2">
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+      <h2 class="text-lg font-semibold mb-2">Results</h2>
+      <p id="perUser" class="text-gray-700 text-md">Per User Cost: $0.00</p>
+      <p id="total" class="text-gray-700 text-md">Total Cost: $0.00</p>
+    </div>
+  </div>
+
+  <script>
+    function toggleAdvanced() {
+      document.getElementById("advanced").classList.toggle("hidden");
+    }
+
+    function calculate() {
+      const recallFixed = parseFloat(document.getElementById("recallFixed").value) || 0;
+      const licenses = parseInt(document.getElementById("licenses").value) || 1;
+      const usage = parseFloat(document.getElementById("usage").value) || 0;
+      const recallVariable = parseFloat(document.getElementById("recallVariable").value) || 0;
+
+      const awsDaily = parseFloat(document.getElementById("awsDaily").value) || 0;
+      const apiCost = parseFloat(document.getElementById("apiCost").value) || 0;
+      const supabase = parseFloat(document.getElementById("supabase").value) || 0;
+
+      // AWS fixed monthly cost
+      const awsFixed = awsDaily * 30 * Math.ceil(licenses / 10);
+
+      // OpenAI/Groq cost per license
+      const openAICost = usage * apiCost;
+
+      // Per user cost
+      const perUser = recallFixed + (recallVariable * usage) + openAICost + (awsFixed / licenses) + supabase;
+
+      // Total cost
+      const total = perUser * licenses;
+
+      // Update UI
+      document.getElementById("perUser").innerText = "Per User Cost: $" + perUser.toFixed(2);
+      document.getElementById("total").innerText = "Total Cost: $" + total.toFixed(2);
+    }
+
+    // Recalculate on input
+    document.querySelectorAll("input").forEach(el => el.addEventListener("input", calculate));
+
+    // Initial calculation
+    calculate();
+  </script>
+</body>
+</html>
